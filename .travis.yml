@@ -1,0 +1,17 @@
+language: python
+python:
+- '3.4'
+- '3.5'
+- '3.6'
+# notifications:
+#   email:
+#     on_success: change
+#     on_failure: always
+before_install:
+  - pip install codecov
+install:
+  - pip install ".[test]"
+before_script: ./scripts/before_script.sh
+script: pytest --cov=shleem
+after_success:
+  - codecov
