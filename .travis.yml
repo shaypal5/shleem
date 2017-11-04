@@ -12,6 +12,7 @@ before_install:
 install:
   - pip install ".[test]"
 before_script: 
+  - mkdir ~/.shleem
   - openssl aes-256-cbc -K $encrypted_b00ed207d6c3_key -iv $encrypted_b00ed207d6c3_iv -in ./scripts/shleem_mongodb_cred.json.enc -out ~\/.shleem/shleem_mongodb_cred.json -d
 #  - chmod +x ./scripts/before_script.sh
 #  - ./scripts/before_script.sh
