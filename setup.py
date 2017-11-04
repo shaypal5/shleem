@@ -10,9 +10,9 @@ import versioneer
 
 
 # Require Python 3.5 or higher
-if sys.version_info.major < 3 or sys.version_info.minor < 5:
-    warnings.warn("shleem requires Python 3.5 or higher!")
-    sys.exit(1)
+#if sys.version_info.major < 3 or sys.version_info.minor < 5:
+#    warnings.warn("shleem requires Python 3.5 or higher!")
+#    sys.exit(1)
 
 
 TEST_REQUIRES = ['pytest', 'coverage', 'pytest-cov']
@@ -36,7 +36,7 @@ setuptools.setup(
         shleem=shleem.scripts.shleem_cli:cli
     ''',
     install_requires=[
-        'pymongo>=3.4',
+        'pymongo>=3.4', 'strct',
     ],
     extras_require={
         'test': TEST_REQUIRES,
