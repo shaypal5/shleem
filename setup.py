@@ -15,6 +15,7 @@ import versioneer
 #    sys.exit(1)
 
 
+INSTALL_REQUIRES = ['pymongo>=3.4', 'strct']
 TEST_REQUIRES = ['pytest', 'coverage', 'pytest-cov']
 
 with open('README.rst') as f:
@@ -36,9 +37,9 @@ setuptools.setup(
         shleem=shleem.scripts.shleem_cli:cli
     ''',
     install_requires=[
-        'pymongo>=3.4', 'strct',
+        INSTALL_REQUIRES
     ],
     extras_require={
-        'test': TEST_REQUIRES,
+        'test': TEST_REQUIRES + INSTALL_REQUIRES,
     }
 )
