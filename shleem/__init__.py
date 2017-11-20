@@ -7,12 +7,12 @@ del get_versions
 
 # === module imports
 
-from .core import (
-    DataSource,
-    DataTap,
-)
+# from .datasource import (
+#     DataSource,
+#     DataTap,
+# )
 
-import shleem.mongodb
+import shleem.mongodb  # noqa: E402, F401
 
 for name in ['shleem', 'core', 'shared']:
     try:

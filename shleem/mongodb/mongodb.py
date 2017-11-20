@@ -6,6 +6,7 @@ import json
 import urllib.parse
 from functools import lru_cache
 
+
 from pymongo import MongoClient
 from strct.general import stable_hash_builtins_strct
 
@@ -15,11 +16,16 @@ from shleem.core import (
 )
 from shleem.shared import SHLEEM_DIR_PATH
 
+from .mongoutil import dump_document_cursor_to_csv
+
 
 MONGODB_SOURCE_TYPE = 'MongoDB'
+SHLEEM_MONGODB_CRED_FNAME = 'mongodb_credentials.json'
+SHLEEM_MONGODB_CRED_FPATH = os.path.join(
+    SHLEEM_DIR_PATH, SHLEEM_MONGODB_CRED_FNAME)
 MONGO_CRED_FILE_MSG = (
     'MongoDB credentials for shleem should be set by a credentials file. The '
-    'credentials file should be named shleem_mondodb_cred.json, placed in the '
+    'credentials file should be named mongodb_credentials.json, placed in the '
     '.shleem folder located in your home folder and constructed in the '
     'following format:\n'
     '{\n'
@@ -34,6 +40,15 @@ MONGO_CRED_FILE_MSG = (
 )
 
 
+def _get_cred():
+    """Returns MongoDB credentials dict."""
+    try:
+        with open(SHLEEM_MONGODB_CRED_FPATH, 'r') as mongo_cred_file:
+            return json.load(mongo_cred_file)
+    except FileNotFoundError:  # pragma: no cover
+        print(MONGO_CRED_FILE_MSG)
+
+
 class MongoDBSource(DataSource):
     """A MongoDB data source.
 
@@ -46,19 +61,6 @@ class MongoDBSource(DataSource):
     def __init__(self, identifier):
         DataSource.__init__(
             self, identifier=identifier, source_type=MONGODB_SOURCE_TYPE)
-
-
-SHLEEM_MONGODB_CRED_FNAME = 'shleem_mongodb_cred.json'
-SHLEEM_MONGODB_CRED_FPATH = os.path.join(
-    SHLEEM_DIR_PATH, SHLEEM_MONGODB_CRED_FNAME)
-
-def _get_cred():
-    """Returns MongoDB credentials dict."""
-    try:
-        with open(SHLEEM_MONGODB_CRED_FPATH, 'r') as mongo_cred_file:
-            return json.load(mongo_cred_file)
-    except FileNotFoundError: #pragma: no cover
-        print(MONGO_CRED_FILE_MSG)
 
 
 class MongoDBServer(MongoDBSource):
@@ -117,7 +119,6 @@ class MongoDBServer(MongoDBSource):
                 pwd=server_cred.pop('password'),
                 hosts=server_cred.pop('hosts'),
             )
-            print(uris)
             return MongoClient(host=uris, **server_cred)
         except KeyError:
             msg = ("The server {} is missing for shleem's MongoDB credentials"
@@ -129,6 +130,12 @@ class MongoDBServer(MongoDBSource):
 def server(server_name):
     """Returns a MongoDBServer object with the given name."""
     return MongoDBServer(server_name)
+
+
+def _add_servers_attr(module):
+    cred = _get_cred()
+    for server_name in cred['servers']:
+        setattr(module, server_name, server(server_name))
 
 
 class MongoDBDatabase(MongoDBSource):
@@ -199,7 +206,7 @@ class MongoDBCollection(MongoDBSource):
     def __repr__(self):
         return "MongoDB collection DataSource: {}".format(self.identifier)
 
-    def query(self, query_dict):
+    def query(self, query_dict, identifier=None, projection=None):
         """Returns a MongoDBQuery source object representing a query ran
         against this collection.
 
@@ -207,10 +214,17 @@ class MongoDBCollection(MongoDBSource):
         ---------
         query_dict : dict
             A pymongo-compliant MongoDB query.
+        identifier : str, optional
+            A string identifier unique to this query. If none is given, a
+            stable hash function is used to compute a good candidate.
+        projection : list or dict, optional
+            A list of field names that should be returned in the result set or
+            a dict specifying the fields to include or exclude.
         """
-        return MongoDBQuery(self, query_dict)
+        return MongoDBQuery(self, query=query_dict, identifier=identifier,
+                            projection=projection)
 
-    def aggregation(self, aggregation_pipeline):
+    def aggregation(self, aggregation_pipeline, identifier=None):
         """Returns a MongoDBAggregation source object representing an
         aggregation ran against this collection.
 
@@ -218,8 +232,13 @@ class MongoDBCollection(MongoDBSource):
         ---------
         aggregation_piepline : list
             A pymongo-compliant MongoDB aggregation given as a list of dicts.
+        identifier : str, optional
+            A string identifier unique to this aggregation. If none is given, a
+            stable hash function is used to compute a good candidate.
         """
-        return MongoDBAggregation(self, aggregation_pipeline)
+        return MongoDBAggregation(
+            self, aggregation_pipeline=aggregation_pipeline,
+            identifier=identifier)
 
     @lru_cache(maxsize=2)
     def _get_connection(self):
@@ -231,6 +250,9 @@ class MongoDBCollection(MongoDBSource):
 class MongoDBQuery(MongoDBSource, DataTap):
     """A specific MongoDB query data source.
 
+    Objects of this class should not be instantiated directly, but rather using
+    the query method of shleem.MongoDBCollection objects.
+
     Arguments
     ---------
     mongodb_collection : MongoDBCollection
@@ -238,25 +260,60 @@ class MongoDBQuery(MongoDBSource, DataTap):
     query : dict
         A pymongo-compliant MongoDB query.
     identifier : str, optional
-        A string identifier unique to this data source. If none is given, a
-        concatenation of the collection name to the database identifier is
-        used.
+        A string identifier unique to this query. If none is given, a stable
+        hash function is used to compute a good candidate.
+    projection : list or dict, optional
+        A list of field names that should be returned in the result set or a
+        dict specifying the fields to include or exclude.
     """
 
-    def __init__(self, mongodb_collection, query, identifier=None):
+    def __init__(self, mongodb_collection, query, identifier=None,
+                 projection=None):
         if identifier is None:
-            identifier = mongodb_collection.identifier + '.' + str(
-                stable_hash_builtins_strct(query))
+            identifier = str(stable_hash_builtins_strct(query))
+        identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection
         self.query = query
+        self.projection = projection
+        try:
+            self.fieldnames = [
+                k for k in projection.keys()
+                if projection[k] == 1
+            ]
+        except AttributeError:
+            self.fieldnames = projection
 
     def __repr__(self):
         return "MongoDB query DataSource: {}".format(self.identifier)
 
     def tap(self):
         col_obj = self.mongodb_collection._get_connection()
-        return col_obj.find(self.query)
+        return col_obj.find(filter=self.query, projection=self.projection)
+
+    def dump(self, file_path, file_format=None):
+        """Dumps the documnets returned by this MongoDB to file.
+
+        Arguments
+        ---------
+        file_path : str
+            The full path of the file into which cursor documents are dumped.
+        file_format : str, optional
+            A string identifier for the file format the data is serialzed into,
+            e.g. 'csv'. Supported formats are 'csv'.
+        """
+        doc_cursor = self.tap()
+        if file_format is None:
+            file_format = 'csv'
+        if file_format == 'csv':
+            with open(file_path, 'w+') as file_obj:
+                dump_document_cursor_to_csv(
+                    doc_cursor=doc_cursor,
+                    file_obj=file_obj,
+                    fieldnames=self.fieldnames,
+                    missing_val=self.missing_val,
+                    flatten=self.flatten,
+                )
 
 
 class MongoDBAggregation(MongoDBSource, DataTap):
@@ -270,16 +327,15 @@ class MongoDBAggregation(MongoDBSource, DataTap):
         A pymongo-compliant MongoDB aggregation pipelien, given as a list of
         dicts.
     identifier : str, optional
-        A string identifier unique to this data source. If none is given, a
-        concatenation of the collection name to the database identifier is
-        used.
+        A string identifier unique to this aggregation. If none is given, a
+        stable hash function is used to compute a good candidate.
     """
 
     def __init__(self, mongodb_collection, aggregation_pipeline,
                  identifier=None):
         if identifier is None:
-            agg_hash = str(stable_hash_builtins_strct(aggregation_pipeline))
-            identifier = mongodb_collection.identifier + '.' + agg_hash
+            identifier = str(stable_hash_builtins_strct(aggregation_pipeline))
+        identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection
         self.aggregation_pipeline = aggregation_pipeline
@@ -290,3 +346,24 @@ class MongoDBAggregation(MongoDBSource, DataTap):
     def tap(self):
         col_obj = self.mongodb_collection._get_connection()
         return col_obj.aggregate(self.aggregation_pipeline)
+
+    def dump(self, file_path, file_format=None):
+        """Dumps the documnets returned by this MongoDB aggregation to file.
+
+        Arguments
+        ---------
+        file_path : str
+            The full path of the file into which cursor documents are dumped.
+        file_format : str, optional
+            A string identifier for the file format the data is serialzed into,
+            e.g. 'csv'. Supported formats are 'csv'.
+        """
+        doc_cursor = self.tap()
+        if file_format == 'csv':
+            dump_document_cursor_to_csv(
+                doc_cursor=doc_cursor,
+                file_path=file_path,
+                fieldnames=self.fieldnames,
+                missing_val=self.missing_val,
+                flatten=self.flatten,
+            )
