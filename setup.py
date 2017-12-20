@@ -9,10 +9,10 @@ import setuptools
 import versioneer
 
 
-# Require Python 3.5 or higher
-#if sys.version_info.major < 3 or sys.version_info.minor < 5:
-#    warnings.warn("shleem requires Python 3.5 or higher!")
-#    sys.exit(1)
+# Require Python 3.4 or higher
+if sys.version_info.major < 3 or sys.version_info.minor < 4:
+    warnings.warn("shleem requires Python 3.4 or higher!")
+    sys.exit(1)
 
 
 INSTALL_REQUIRES = ['pymongo>=3.4', 'strct']
@@ -41,5 +41,18 @@ setuptools.setup(
     ],
     extras_require={
         'test': TEST_REQUIRES + INSTALL_REQUIRES,
-    }
+    },
+    classifiers=[
+        # Trove classifiers
+        # (https://pypi.python.org/pypi?%3Aaction=list_classifiers)
+        'Development Status :: 4 - Beta',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Libraries :: Python Modules',
+        'Intended Audience :: Developers',
+    ],
 )

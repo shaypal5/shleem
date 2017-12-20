@@ -5,6 +5,7 @@ import abc
 
 DEFAULT_SOURCE_TYPE = 'unspecified'
 
+
 class DataSource(object):
     """A base class for shleem data sources.
 
@@ -40,9 +41,9 @@ class DataTap(DataSource, metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def tap(self):
+    def tap(self, **kwargs):
         """Taps this DataTap to produce a raw dataset."""
-        pass #pragma: no cover
+        pass  # pragma: no cover
 
     def __repr__(self):
         return "DataTap: {}".format(self.identifier)

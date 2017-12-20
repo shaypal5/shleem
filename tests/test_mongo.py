@@ -5,6 +5,7 @@ from strct.general import stable_hash_builtins_strct
 
 import shleem
 
+
 def test_mongo_sources():
 
     # defining a MongoDB server source
@@ -60,6 +61,37 @@ def test_mongo_sources():
     other_doc = cursor.next()
     assert other_doc['restaurant_id'] == '40356068'
 
+    def getter(field_name):
+        return lambda **kwargs: kwargs[field_name]
+
+    # parameterized query
+    param_query_dict = {"address.zipcode": {
+        "$gte": getter("min_val"), "$lte": getter("max_val")
+    }}
+    # first without identifier, so we check all the code!
+    zipcode_range = examp.query(param_query_dict)
+    zipcode_range = examp.query(
+        query_dict=param_query_dict, identifier="zipcode_range")
+    min_val = 11249
+    max_val = 11300
+    cursor = zipcode_range.tap(min_val=str(min_val), max_val=str(max_val))
+    documents = [doc for doc in cursor]
+    assert len(documents) == 163
+    for doc in documents:
+        zipcode = doc['address']['zipcode']
+        assert int(zipcode) >= min_val and int(zipcode) <= max_val
+
+    # with skip and limit
+    some_limit = 17
+    zipcode_range2 = examp.query(
+        query_dict=param_query_dict, skip=10, limit=some_limit)
+    cursor = zipcode_range2.tap(min_val=str(min_val), max_val=str(max_val))
+    documents = [doc for doc in cursor]
+    assert len(documents) == some_limit
+    for doc in documents:
+        zipcode = doc['address']['zipcode']
+        assert int(zipcode) >= min_val and int(zipcode) <= max_val
+
     # aggregation data tap
     agg_pipeline = [
         {'$group': {'_id': '$borough', 'count': {'$sum': 1}}}
@@ -78,8 +110,60 @@ def test_mongo_sources():
     assert res['Missing'] == 51
     assert res['Queens'] == 5656
 
+    # parameterized aggregation
+    param_agg = [
+        {"$match": {"address.zipcode": {"$gte": "11695"}}},
+        {"$unwind": "$grades"},
+        {"$group": {
+            "_id": {"name": "$name", "address": "$address"},
+            "sum_score": {"$sum": "$grades.score"},
+            "num_score": {"$sum": 1}
+        }},
+        {"$project": {
+            "_id": 1, "avg_score": {"$divide": ["$sum_score", "$num_score"]}
+        }},
+        {"$match": {
+            "avg_score": {
+                "$gt": lambda **kwargs: kwargs["avg_score_threshold"]
+            }
+        }}
+    ]
+    # first without and identifier, so we check all the code handling that!
+    by_avg_score_threshold = examp.aggregation(param_agg)
+    # now with an identifier!
+    by_avg_score_threshold = examp.aggregation(
+        param_agg, "restaurant_by_avg_score_threshold")
+    thresh = 13.5
+    cursor = by_avg_score_threshold.tap(avg_score_threshold=thresh)
+    for doc in cursor:
+        assert doc['avg_score'] > thresh
 
-
+    # parameterized aggregation with a callable in a list
+    param_agg2 = [
+        {"$match": {"address.zipcode": {"$gte": "11695"}}},
+        {"$unwind": "$grades"},
+        {"$group": {
+            "_id": {"name": "$name", "address": "$address"},
+            "sum_score": {"$sum": "$grades.score"}
+        }},
+        {"$project": {
+            "_id": 1,
+            "avg_score": {"$divide": ["$sum_score", getter("normalizer")]}
+        }},
+        {"$match": {
+            "avg_score": {
+                "$gt": lambda **kwargs: kwargs["avg_score_threshold"]
+            }
+        }}
+    ]
+    by_norm_score_threshold = examp.aggregation(param_agg2)
+    thresh2 = 13.5
+    cursor = by_norm_score_threshold.tap(
+        avg_score_threshold=thresh2, normalizer=4)
+    all_res = [doc for doc in cursor]
+    assert len(all_res) == 2
+    for doc in all_res:
+        assert doc['avg_score'] > thresh2
 
 
 def test_missing_server():
