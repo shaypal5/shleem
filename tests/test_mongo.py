@@ -65,23 +65,29 @@ def test_mongo_sources():
         return lambda **kwargs: kwargs[field_name]
 
     # parameterized query
-    zipcode_range = examp.query(
-        {"address.zipcode": {
-            "$gte": getter("min_val"), "$lte": getter("max_val")
-        }},
-    )
+    param_query_dict = {"address.zipcode": {
+        "$gte": getter("min_val"), "$lte": getter("max_val")
+    }}
     # first without identifier, so we check all the code!
+    zipcode_range = examp.query(param_query_dict)
     zipcode_range = examp.query(
-        {"address.zipcode": {
-            "$gte": getter("min_val"), "$lte": getter("max_val")
-        }},
-        identifier="zipcode_range"
-    )
+        query_dict=param_query_dict, identifier="zipcode_range")
     min_val = 11249
     max_val = 11300
     cursor = zipcode_range.tap(min_val=str(min_val), max_val=str(max_val))
     documents = [doc for doc in cursor]
     assert len(documents) == 163
+    for doc in documents:
+        zipcode = doc['address']['zipcode']
+        assert int(zipcode) >= min_val and int(zipcode) <= max_val
+
+    # with skip and limit
+    some_limit = 17
+    zipcode_range2 = examp.query(
+        query_dict=param_query_dict, skip=10, limit=some_limit)
+    cursor = zipcode_range2.tap(min_val=str(min_val), max_val=str(max_val))
+    documents = [doc for doc in cursor]
+    assert len(documents) == some_limit
     for doc in documents:
         zipcode = doc['address']['zipcode']
         assert int(zipcode) >= min_val and int(zipcode) <= max_val

@@ -195,7 +195,8 @@ class MongoDBCollection(MongoDBSource):
     def __repr__(self):
         return "MongoDB collection DataSource: {}".format(self.identifier)
 
-    def query(self, query_dict, identifier=None, projection=None):
+    def query(self, query_dict, identifier=None, projection=None, skip=None,
+              limit=None):
         """Returns a MongoDBQuery source object representing a query ran
         against this collection.
 
@@ -209,9 +210,14 @@ class MongoDBCollection(MongoDBSource):
         projection : list or dict, optional
             A list of field names that should be returned in the result set or
             a dict specifying the fields to include or exclude.
+        skip : int, optional
+            the number of documents to omit (from the start of the result set)
+            when returning the results.
+        limit : int, optional
+            the maximum number of results to return.
         """
         return MongoDBQuery(self, query=query_dict, identifier=identifier,
-                            projection=projection)
+                            projection=projection, skip=skip, limit=limit)
 
     def aggregation(self, aggregation_pipeline, identifier=None):
         """Returns a MongoDBAggregation source object representing an
@@ -306,14 +312,14 @@ class MongoDBQuery(MongoDBSource, DataTap):
         A list of field names that should be returned in the result set or a
         dict specifying the fields to include or exclude.
     skip : int, optional
-        The number of documents to omit (from the start of the result set)
+        the number of documents to omit (from the start of the result set)
         when returning the results.
     limit : int, optional
-        The maximum number of results to return.
+        the maximum number of results to return.
     """
 
     def __init__(self, mongodb_collection, query, identifier=None,
-                 projection=None, skip=0, limit=0):
+                 projection=None, skip=None, limit=None):
         if identifier is None:
             try:
                 identifier = str(stable_hash_builtins_strct(query))
@@ -325,6 +331,12 @@ class MongoDBQuery(MongoDBSource, DataTap):
         self.mongodb_collection = mongodb_collection
         self.query = query
         self.projection = projection
+        if skip is None:
+            skip = 0
+        if limit is None:
+            limit = 0  # pargma: no cover
+        self.skip = skip
+        self.limit = limit
 
     def __repr__(self):
         return "MongoDB query DataSource: {}".format(self.identifier)
@@ -332,7 +344,12 @@ class MongoDBQuery(MongoDBSource, DataTap):
     def tap(self, **kwargs):
         col_obj = self.mongodb_collection._get_connection()
         query = _resolve_query(self.query, **kwargs)
-        return col_obj.find(filter=query, projection=self.projection)
+        return col_obj.find(
+            filter=query,
+            projection=self.projection,
+            skip=self.skip,
+            limit=self.limit,
+        )
 
 
 class MongoDBAggregation(MongoDBSource, DataTap):
