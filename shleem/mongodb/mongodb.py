@@ -16,8 +16,6 @@ from shleem.core import (
 )
 from shleem.shared import SHLEEM_DIR_PATH
 
-from .mongoutil import dump_document_cursor_to_csv
-
 
 MONGODB_SOURCE_TYPE = 'MongoDB'
 SHLEEM_MONGODB_CRED_FNAME = 'mongodb_credentials.json'
@@ -147,14 +145,10 @@ class MongoDBDatabase(MongoDBSource):
         The MongoDB server this database is located on.
     db_name : str
         The name of the database.
-    identifier : str, optional
-        A string identifier unique to this data source. If none is given, a
-        concatenation of the database name to the server identifier is used.
     """
 
-    def __init__(self, mongodb_server, db_name, identifier=None):
-        if identifier is None:
-            identifier = mongodb_server.identifier + '.' + db_name
+    def __init__(self, mongodb_server, db_name):
+        identifier = mongodb_server.identifier + '.' + db_name
         MongoDBSource.__init__(self, identifier=identifier)
         self.mongodb_server = mongodb_server
         self.db_name = db_name
@@ -190,15 +184,10 @@ class MongoDBCollection(MongoDBSource):
         The MongoDB database this collection is located on.
     collection_name : str
         The name of the collection.
-    identifier : str, optional
-        A string identifier unique to this data source. If none is given, a
-        concatenation of the collection name to the database identifier is
-        used.
     """
 
-    def __init__(self, mongodb_db, collection_name, identifier=None):
-        if identifier is None:
-            identifier = mongodb_db.identifier + '.' + collection_name
+    def __init__(self, mongodb_db, collection_name):
+        identifier = mongodb_db.identifier + '.' + collection_name
         MongoDBSource.__init__(self, identifier=identifier)
         self.mongodb_db = mongodb_db
         self.collection_name = collection_name
@@ -247,6 +236,57 @@ class MongoDBCollection(MongoDBSource):
         return self.mongodb_db._get_connection()[self.collection_name]
 
 
+def _clean_query_helper(obj):
+    if isinstance(obj, dict):
+        for key in obj:
+            if callable(obj[key]):
+                obj[key] = obj[key].__name__
+            elif isinstance(obj[key], (dict, list, tuple)):
+                obj[key] = _clean_query_helper(obj[key])
+    if isinstance(obj, (list, tuple)):
+        new_list = []
+        for item in obj:
+            if callable(item):
+                new_list.append(item.__name__)
+            elif isinstance(item, (dict, list, tuple)):
+                new_list.append(_clean_query_helper(item))
+            else:
+                new_list.append(item)
+        return new_list
+    return obj
+
+
+def _clean_query_from_callables(query):
+    new = copy.deepcopy(query)
+    return _clean_query_helper(new)
+
+
+def _resolve_helper(obj, **kwargs):
+    if isinstance(obj, dict):
+        for key in obj.keys():
+            if callable(obj[key]):
+                obj[key] = obj[key](**kwargs)
+            if isinstance(obj[key], (dict, list, tuple)):
+                obj[key] = _resolve_helper(obj[key], **kwargs)
+        return obj
+    # else, it's a list or a tuple
+    # if isinstance(obj, (list, tuple)):
+    new_list = []
+    for item in obj:
+        if callable(item):
+            new_list.append(item(**kwargs))
+        elif isinstance(item, (dict, list, tuple)):
+            new_list.append(_resolve_helper(item, **kwargs))
+        else:
+            new_list.append(item)
+    return new_list
+
+
+def _resolve_query(query, **kwargs):
+    resolved_query = copy.deepcopy(query)
+    return _resolve_helper(resolved_query, **kwargs)
+
+
 class MongoDBQuery(MongoDBSource, DataTap):
     """A specific MongoDB query data source.
 
@@ -265,55 +305,34 @@ class MongoDBQuery(MongoDBSource, DataTap):
     projection : list or dict, optional
         A list of field names that should be returned in the result set or a
         dict specifying the fields to include or exclude.
+    skip : int, optional
+        The number of documents to omit (from the start of the result set)
+        when returning the results.
+    limit : int, optional
+        The maximum number of results to return.
     """
 
     def __init__(self, mongodb_collection, query, identifier=None,
-                 projection=None):
+                 projection=None, skip=0, limit=0):
         if identifier is None:
-            identifier = str(stable_hash_builtins_strct(query))
+            try:
+                identifier = str(stable_hash_builtins_strct(query))
+            except TypeError:
+                clean_query = _clean_query_from_callables(query)
+                identifier = str(stable_hash_builtins_strct(clean_query))
         identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection
         self.query = query
         self.projection = projection
-        try:
-            self.fieldnames = [
-                k for k in projection.keys()
-                if projection[k] == 1
-            ]
-        except AttributeError:
-            self.fieldnames = projection
 
     def __repr__(self):
         return "MongoDB query DataSource: {}".format(self.identifier)
 
-    def tap(self):
+    def tap(self, **kwargs):
         col_obj = self.mongodb_collection._get_connection()
-        return col_obj.find(filter=self.query, projection=self.projection)
-
-    def dump(self, file_path, file_format=None):
-        """Dumps the documnets returned by this MongoDB to file.
-
-        Arguments
-        ---------
-        file_path : str
-            The full path of the file into which cursor documents are dumped.
-        file_format : str, optional
-            A string identifier for the file format the data is serialzed into,
-            e.g. 'csv'. Supported formats are 'csv'.
-        """
-        doc_cursor = self.tap()
-        if file_format is None:
-            file_format = 'csv'
-        if file_format == 'csv':
-            with open(file_path, 'w+') as file_obj:
-                dump_document_cursor_to_csv(
-                    doc_cursor=doc_cursor,
-                    file_obj=file_obj,
-                    fieldnames=self.fieldnames,
-                    missing_val=self.missing_val,
-                    flatten=self.flatten,
-                )
+        query = _resolve_query(self.query, **kwargs)
+        return col_obj.find(filter=query, projection=self.projection)
 
 
 class MongoDBAggregation(MongoDBSource, DataTap):
@@ -334,7 +353,13 @@ class MongoDBAggregation(MongoDBSource, DataTap):
     def __init__(self, mongodb_collection, aggregation_pipeline,
                  identifier=None):
         if identifier is None:
-            identifier = str(stable_hash_builtins_strct(aggregation_pipeline))
+            try:
+                identifier = str(stable_hash_builtins_strct(
+                    aggregation_pipeline))
+            except TypeError:
+                clean_pipe = _clean_query_from_callables(
+                    aggregation_pipeline)
+                identifier = str(stable_hash_builtins_strct(clean_pipe))
         identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection
@@ -343,27 +368,7 @@ class MongoDBAggregation(MongoDBSource, DataTap):
     def __repr__(self):
         return "MongoDB aggregation DataSource: {}".format(self.identifier)
 
-    def tap(self):
+    def tap(self, **kwargs):
         col_obj = self.mongodb_collection._get_connection()
-        return col_obj.aggregate(self.aggregation_pipeline)
-
-    def dump(self, file_path, file_format=None):
-        """Dumps the documnets returned by this MongoDB aggregation to file.
-
-        Arguments
-        ---------
-        file_path : str
-            The full path of the file into which cursor documents are dumped.
-        file_format : str, optional
-            A string identifier for the file format the data is serialzed into,
-            e.g. 'csv'. Supported formats are 'csv'.
-        """
-        doc_cursor = self.tap()
-        if file_format == 'csv':
-            dump_document_cursor_to_csv(
-                doc_cursor=doc_cursor,
-                file_path=file_path,
-                fieldnames=self.fieldnames,
-                missing_val=self.missing_val,
-                flatten=self.flatten,
-            )
+        pipe = _resolve_query(self.aggregation_pipeline, **kwargs)
+        return col_obj.aggregate(pipe)

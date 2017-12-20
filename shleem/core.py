@@ -5,6 +5,7 @@ import abc
 
 DEFAULT_SOURCE_TYPE = 'unspecified'
 
+
 class DataSource(object):
     """A base class for shleem data sources.
 
@@ -40,24 +41,9 @@ class DataTap(DataSource, metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def tap(self):
+    def tap(self, **kwargs):
         """Taps this DataTap to produce a raw dataset."""
-        pass #pragma: no cover
-
-    @abc.abstractmethod
-    def dump(self, file_path, file_format=None):
-        """Dumps the raw dataset produced by this tap to a file.
-
-        Arguments
-        ---------
-        file_path : str
-            The full path of the file into which the raw dataset is dumped.
-        file_format : str, optional
-            A string identifier for the file format the data is serialzed into,
-            e.g. 'csv'. Supported formats are dependent on the type of DataTap.
-            If not given, a default format, dependent on DataTap type, is used.
-        """
-        pass
+        pass  # pragma: no cover
 
     def __repr__(self):
         return "DataTap: {}".format(self.identifier)

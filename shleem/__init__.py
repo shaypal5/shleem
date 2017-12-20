@@ -7,10 +7,10 @@ del get_versions
 
 # === module imports
 
-# from .datasource import (
-#     DataSource,
-#     DataTap,
-# )
+from .core import ( # noqa
+    DataSource,
+    DataTap,
+)
 
 import shleem.mongodb  # noqa: E402, F401
 
