@@ -8,7 +8,7 @@ from functools import lru_cache
 
 
 from pymongo import MongoClient
-from strct.general import stable_hash_builtins_strct
+from strct.hash import stable_hash
 
 from shleem.core import (
     DataSource,
@@ -322,10 +322,10 @@ class MongoDBQuery(MongoDBSource, DataTap):
                  projection=None, skip=None, limit=None):
         if identifier is None:
             try:
-                identifier = str(stable_hash_builtins_strct(query))
+                identifier = str(abs(stable_hash(query)))
             except TypeError:
                 clean_query = _clean_query_from_callables(query)
-                identifier = str(stable_hash_builtins_strct(clean_query))
+                identifier = str(abs(stable_hash(clean_query)))
         identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection
@@ -371,12 +371,12 @@ class MongoDBAggregation(MongoDBSource, DataTap):
                  identifier=None):
         if identifier is None:
             try:
-                identifier = str(stable_hash_builtins_strct(
-                    aggregation_pipeline))
+                identifier = str(abs(stable_hash(
+                    aggregation_pipeline)))
             except TypeError:
                 clean_pipe = _clean_query_from_callables(
                     aggregation_pipeline)
-                identifier = str(stable_hash_builtins_strct(clean_pipe))
+                identifier = str(abs(stable_hash(clean_pipe)))
         identifier = mongodb_collection.identifier + '.' + identifier
         super().__init__(identifier=identifier)
         self.mongodb_collection = mongodb_collection

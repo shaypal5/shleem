@@ -1,7 +1,7 @@
 """Testing MongoDB data sources for the shleem python package."""
 
 import pytest
-from strct.general import stable_hash_builtins_strct
+from strct.hash import stable_hash
 
 import shleem
 
@@ -45,10 +45,10 @@ def test_mongo_sources():
     assert repr(queens_people) == (
         "MongoDB query DataSource: shleem_test_server.shleem_test"
         ".example_data_collection.{}".format(
-            stable_hash_builtins_strct(query)))
+            stable_hash(query)))
     assert queens_people.identifier == (
         "shleem_test_server.shleem_test.example_data_collection.{}".format(
-            stable_hash_builtins_strct(query)))
+            stable_hash(query)))
     assert queens_people.source_type == 'MongoDB'
 
     # checking the client
@@ -99,7 +99,7 @@ def test_mongo_sources():
     borough_counts = examp.aggregation(agg_pipeline)
     exp_id = (
         'shleem_test_server.shleem_test.example_data_collection.'
-        '7098918b9417525bcb7126c8978ad3c10ac4a352a2238d3e614cfcd50b6b82bc')
+        '1216216893277084555')
     assert borough_counts.identifier == exp_id
     exp_repr = "MongoDB aggregation DataSource: {}".format(exp_id)
     assert repr(borough_counts) == exp_repr
