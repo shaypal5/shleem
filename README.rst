@@ -111,8 +111,8 @@ Created by Shay Palachy (shay.palachy@gmail.com).
 .. |Build-Status| image:: https://travis-ci.org/shaypal5/shleem.svg?branch=master
   :target: https://travis-ci.org/shaypal5/shleem
 
-.. |LICENCE| image:: https://img.shields.io/pypi/l/shleem.svg
-  :target: https://pypi.python.org/pypi/shleem
+.. |LICENCE| image:: https://img.shields.io/github/license/shaypal5/shleem.svg
+  :target: https://github.com/shaypal5/shleem/blob/master/LICENSE
 
 .. |Codecov| image:: https://codecov.io/github/shaypal5/shleem/coverage.svg?branch=master
    :target: https://codecov.io/github/shaypal5/shleem?branch=master
