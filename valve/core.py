@@ -1,4 +1,4 @@
-"""Core functions for the shleem package."""
+"""Core functions for the valve package."""
 
 import abc
 
@@ -7,7 +7,7 @@ DEFAULT_SOURCE_TYPE = 'unspecified'
 
 
 class DataSource(object):
-    """A base class for shleem data sources.
+    """A base class for valve data sources.
 
     Arguments
     ---------
@@ -29,7 +29,7 @@ class DataSource(object):
 
 
 class DataTap(DataSource, metaclass=abc.ABCMeta):
-    """An abstract base class for tappable shleem data sources.
+    """An abstract base class for tappable valve data sources.
 
     Arguments
     ---------

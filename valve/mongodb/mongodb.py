@@ -10,11 +10,11 @@ from functools import lru_cache
 from pymongo import MongoClient
 from strct.hash import stable_hash
 
-from shleem.core import (
+from valve.core import (
     DataSource,
     DataTap,
 )
-from shleem.shared import SHLEEM_DIR_PATH
+from valve.shared import SHLEEM_DIR_PATH
 
 
 MONGODB_SOURCE_TYPE = 'MongoDB'
@@ -22,15 +22,15 @@ SHLEEM_MONGODB_CRED_FNAME = 'mongodb_credentials.json'
 SHLEEM_MONGODB_CRED_FPATH = os.path.join(
     SHLEEM_DIR_PATH, SHLEEM_MONGODB_CRED_FNAME)
 MONGO_CRED_FILE_MSG = (
-    'MongoDB credentials for shleem should be set by a credentials file. The '
+    'MongoDB credentials for valve should be set by a credentials file. The '
     'credentials file should be named mongodb_credentials.json, placed in the '
-    '.shleem folder located in your home folder and constructed in the '
+    '.valve folder located in your home folder and constructed in the '
     'following format:\n'
     '{\n'
     '    "servers": {\n'
     '        "production_data_store": {\n'
     '            "hosts": ["ds192763.mlab.com:51829"],\n'
-    '             "username": "shleem_reader",\n'
+    '             "username": "valve_reader",\n'
     '             "password": "8d728673tfi8h723yds"\n'
     '        }\n'
     '    }\n'
@@ -119,7 +119,7 @@ class MongoDBServer(MongoDBSource):
             )
             return MongoClient(host=uris, **server_cred)
         except KeyError:
-            msg = ("The server {} is missing for shleem's MongoDB credentials"
+            msg = ("The server {} is missing for valve's MongoDB credentials"
                    "file.\n".format(self.server_name) + MONGO_CRED_FILE_MSG)
             raise ValueError(msg)
 
@@ -297,7 +297,7 @@ class MongoDBQuery(MongoDBSource, DataTap):
     """A specific MongoDB query data source.
 
     Objects of this class should not be instantiated directly, but rather using
-    the query method of shleem.MongoDBCollection objects.
+    the query method of valve.MongoDBCollection objects.
 
     Arguments
     ---------

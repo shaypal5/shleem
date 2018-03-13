@@ -2,8 +2,8 @@
 branch = True
 omit =
     tests/*
-    shleem/scripts/*
-    shleem/_version.py
+    valve/scripts/*
+    valve/_version.py
     */__init__.py
 [report]
 show_missing = True

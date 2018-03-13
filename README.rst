@@ -1,4 +1,4 @@
-shleem
+valve
 ########
 |PyPI-Status| |PyPI-Versions| |Build-Status| |Codecov| |LICENCE|
 
@@ -6,7 +6,7 @@ Automate and version datasets generation from data sources.
 
 .. code-block:: python
 
-  import shleem
+  import valve
   # mystery code
 
 .. contents::
@@ -19,18 +19,18 @@ Installation
 
 .. code-block:: bash
 
-  pip install shleem
+  pip install valve
 
 
-Setting up shleem
+Setting up valve
 ===================
 
-shleem uses a couple of simple conventions to handle credentials and refer to MongoDB servers:
+valve uses a couple of simple conventions to handle credentials and refer to MongoDB servers:
 
 Credentials file
 ----------------
 
-You must set up a credentials file for shleem to use. Create a ``.shleem/shleem_credentials.yml`` file in your home folder, populating it with your MongoDB credentials, using an identical structure to the inner structure of the ``envs`` configuration parameters:
+You must set up a credentials file for valve to use. Create a ``.valve/valve_credentials.yml`` file in your home folder, populating it with your MongoDB credentials, using an identical structure to the inner structure of the ``envs`` configuration parameters:
 
 .. code-block:: python
 
@@ -64,14 +64,14 @@ Clone:
 
 .. code-block:: bash
 
-  git clone git@github.com:shaypal5/shleem.git
+  git clone git@github.com:shaypal5/valve.git
 
 
 Install in development mode:
 
 .. code-block:: bash
 
-  cd shleem
+  cd valve
   pip install -e .
 
 
@@ -83,7 +83,7 @@ To run the tests use:
 .. code-block:: bash
 
   pip install pytest pytest-cov coverage
-  cd shleem
+  cd valve
   pytest
 
 
@@ -102,17 +102,17 @@ Credits
 Created by Shay Palachy (shay.palachy@gmail.com).
 
 
-.. |PyPI-Status| image:: https://img.shields.io/pypi/v/shleem.svg
-  :target: https://pypi.python.org/pypi/shleem
+.. |PyPI-Status| image:: https://img.shields.io/pypi/v/valve.svg
+  :target: https://pypi.python.org/pypi/valve
 
-.. |PyPI-Versions| image:: https://img.shields.io/pypi/pyversions/shleem.svg
-   :target: https://pypi.python.org/pypi/shleem
+.. |PyPI-Versions| image:: https://img.shields.io/pypi/pyversions/valve.svg
+   :target: https://pypi.python.org/pypi/valve
 
-.. |Build-Status| image:: https://travis-ci.org/shaypal5/shleem.svg?branch=master
-  :target: https://travis-ci.org/shaypal5/shleem
+.. |Build-Status| image:: https://travis-ci.org/shaypal5/valve.svg?branch=master
+  :target: https://travis-ci.org/shaypal5/valve
 
-.. |LICENCE| image:: https://img.shields.io/github/license/shaypal5/shleem.svg
-  :target: https://github.com/shaypal5/shleem/blob/master/LICENSE
+.. |LICENCE| image:: https://img.shields.io/github/license/shaypal5/valve.svg
+  :target: https://github.com/shaypal5/valve/blob/master/LICENSE
 
-.. |Codecov| image:: https://codecov.io/github/shaypal5/shleem/coverage.svg?branch=master
-   :target: https://codecov.io/github/shaypal5/shleem?branch=master
+.. |Codecov| image:: https://codecov.io/github/shaypal5/valve/coverage.svg?branch=master
+   :target: https://codecov.io/github/shaypal5/valve?branch=master

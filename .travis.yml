@@ -11,11 +11,6 @@ before_install:
   - pip install codecov
 install:
   - pip install ".[test]"
-before_script: 
-  - mkdir ~/.shleem
-  - openssl aes-256-cbc -K $encrypted_b00ed207d6c3_key -iv $encrypted_b00ed207d6c3_iv -in ./ci/shleem_mongodb_cred.json.enc -out ~/.shleem/mongodb_credentials.json -d
-#  - chmod +x ./scripts/before_script.sh
-#  - ./scripts/before_script.sh
-script: pytest --cov=shleem
+script: pytest --cov=valve
 after_success:
   - codecov
