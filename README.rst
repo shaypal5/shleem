@@ -4,7 +4,7 @@ valve |valve_icon|
 
 Automate and version datasets generation from data sources.
 
-.. |valve_icon| image:: https://github.com/shaypal5/valve/blob/3b152356f468618742665ca98deb1dd57f5a2eba/valve.png 
+.. |valve_icon| image:: https://github.com/shaypal5/valve/blob/e1b99254e5aaa5d0d52882ada09a3d1a8622af29/valve.png 
    
 .. code-block:: python
 
