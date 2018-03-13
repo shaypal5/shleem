@@ -1,9 +1,11 @@
-valve
-########
+valve |valve_icon|
+##################
 |PyPI-Status| |PyPI-Versions| |Build-Status| |Codecov| |LICENCE|
 
 Automate and version datasets generation from data sources.
 
+.. |valve_icon| image:: https://github.com/shaypal5/birch/blob/cc5595bbb78f784a3174a07157083f755fc93172/birch.pn://github.com/shaypal5/valve/blob/63d09d8e950bf889372f3a0bda30d47348d6c13d/valve.png  
+   
 .. code-block:: python
 
   import valve
